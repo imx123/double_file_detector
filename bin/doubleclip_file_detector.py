@@ -39,12 +39,12 @@ def compare(origin, new):
     for i in new:
         hash2 = count(i)
         hash_new[hash2] = i
+    print("sha1计算完成，正在比对")
     for y in hash_new:
         if y in hash_origin:
             clipped[y] = hash_new[y]
             continue
     return clipped
-
 
 
 def manage(clipped):
@@ -63,8 +63,8 @@ def manage(clipped):
                 try:
                     os.remove(rm_file)
                 except:
-                    print("删除", rm_file, "失败，请检查文件或权限")
                     fail += 1
+                    print("删除", rm_file, "失败，请检查文件或权限")
                 finally:
                     file_num += 1
             print("执行完成，成功删除", file_num - fail, "个文件，失败", fail, "个文件" )
@@ -77,11 +77,13 @@ def manage(clipped):
         else:
             continue
 
+
 def main():
     while True:
         print("文件查重（测试）")
-        print("1:开始查重")
-        print("2:退出程序")
+        print("1:开始查重(增加）")
+        print("2:开始查重（已有）")
+        print("3:退出程序")
         choose = int(input(""))
         if choose == 1:
             origin_path = []
@@ -96,6 +98,15 @@ def main():
             print("计算完成, 用时", time1 - time0)
             manage(clipped)
         elif choose == 2:
+            path = []
+            path_exist = input("文件夹路径")
+            time0 = time.time()
+            path.extend(read_file(path_exist))
+            clipped = compare(path, path)
+            time1 = time.time()
+            print("计算完成, 用时", time1 - time0)
+            manage(clipped)
+        elif choose == 3:
             return False
         else:
             continue
