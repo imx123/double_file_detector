@@ -2,6 +2,41 @@ import hashlib
 import os
 import time
 from collections import defaultdict
+import concurrent.futures
+
+
+def read_file(path):
+    each_folder_files = []  # 清空赋值
+    for root, dirs, files in os.walk(path):
+        if len(files) > 0:  # 有文件就读取，没文件就跳过
+            each_folder_files = each_folder_files + [os.path.join(root, x) for x in files]  # 把每次遍历的文件夹里的文件加到同一个list里
+            # print(each_folder_files, "1") # debug
+    if len(each_folder_files) == 0:  # 防止空list进入下一步
+        print("错误：文件夹中没有文件")
+        return main()
+    try:  # 以防万一
+        return each_folder_files
+    except:
+        print("错误：文件夹中没有文件")
+        return main()
+
+
+def count_new(path):
+    jisuan = hashlib.sha1()
+    try:
+        file = open(fr'{path}', 'rb')  # 打开文件
+    except:
+        print("错误：无法打开文件，请检查文件路径")
+    while True:
+        read = file.read(256000)  # 分块读取文件，避免内存溢出
+        jisuan.update(read)
+        if not read:  # 读完继续
+            break
+    file.close()
+    output = jisuan.hexdigest()  # 计算哈希值
+    output_list = [path, output]  # 将文件名和文件哈希一起回传以便对应
+    print(path, "计算完成", output)
+    return output_list
 
 
 def count(path):
@@ -21,20 +56,29 @@ def count(path):
     return output
 
 
-def read_file(path):
-    each_folder_files = []  # 清空赋值
-    for root, dirs, files in os.walk(path):
-        if len(files) > 0:  # 有文件就读取，没文件就跳过
-            each_folder_files = each_folder_files + [os.path.join(root, x) for x in files]  # 把每次遍历的文件夹里的文件加到同一个list里
-            # print(each_folder_files, "1") # debug
-    if len(each_folder_files) == 0:  # 防止空list进入下一步
-        print("错误：文件夹中没有文件")
-        return main()
-    try:  # 以防万一
-        return each_folder_files
-    except:
-        print("错误：文件夹中没有文件")
-        return main()
+def compare_parallel(origin, new, method):  # 尝试多线程处理sha1以加快计算速度
+    hash_all = defaultdict(list)  # 赋值
+    clipped = defaultdict(list)
+    if method == 1:
+        path = list(origin + new)  # 整合列表
+    else:
+        path = list(origin)  # 对于单文件夹不整合
+    with concurrent.futures.ThreadPoolExecutor(max_workers=8) as counter:  # 创建进程池，最大线程数为8
+        output = list(counter.map(count_new, path))  # 并行调用count()计算sha1
+    for i in output:
+        hash_all[i[1]].append(i[0])
+    print("sha1计算完成，正在比对")
+    for y in hash_all:  # 将每个哈希对应的文件list提取出来
+        files = hash_all[y]
+        if len(files) == 1:  # 一个哈希一个文件，没重复
+            continue
+        elif len(files) > 1:  # 多于一个，有重复
+            files.append(len(files))  # 将重复文件个数加进list里
+            clipped[y].append(files)  # 将文件路径和个数的list放进总的disc里输出,以哈希为key
+            continue
+        else:
+            print("比对出错！")
+    return clipped
 
 
 def compare(origin, new):
@@ -131,7 +175,7 @@ def main():  # 主程序（主菜单
             origin_path.extend(read_file(path_origin))  # 读取文件，作为列表存储
             new_path.extend((read_file(path_new)))
             print('准备进行计算')
-            clipped = compare(origin_path, new_path)  # 将文件列表输入比较函数
+            clipped = compare_parallel(origin_path, new_path, 1)  # 将文件列表输入比较函数
             time1 = time.time()  # 记录结束时间
             print("比对完成, 用时", round(time1 - time0, 3), "秒")  # 计算用时
             manage(clipped)  # 进入文件管理
@@ -140,7 +184,7 @@ def main():  # 主程序（主菜单
             path_exist = input("文件夹路径")  # 读取文件，作为列表存储
             time0 = time.time()  # 记录开始时间
             path.extend(read_file(path_exist))
-            clipped = compare_e(path)  # 将文件列表输入比较函数（为单文件夹简化的版本
+            clipped = compare_parallel(path, [], 2)  # 将文件列表输入比较函数（为单文件夹简化的版本
             time1 = time.time()
             print("比对完成, 用时", round(time1 - time0, 3), "秒")  # 计算用时
             manage(clipped)  # 进入文件管理
