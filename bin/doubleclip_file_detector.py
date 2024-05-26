@@ -158,7 +158,7 @@ def manage(clipped):  # 操作管理重复文件
             continue
 
 
-def main():  # 主程序（主菜单
+def main():  # 主程序
     while True:
         print("文件查重（测试）")
         print("1:开始查重(增加）")
