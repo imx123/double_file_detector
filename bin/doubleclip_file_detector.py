@@ -45,11 +45,11 @@ def count(path):
         file = open(fr'{path}', 'rb')  # 打开文件
     except:
         print("错误：无法打开文件，请检查文件路径")
-    while True:
-        read = file.read(256000)  # 分块读取文件，避免内存溢出
-        jisuan.update(read)
-        if not read:  # 读完继续
-            break
+    # while True:
+    read = file.read(256000)  # 分块读取文件，避免内存溢出
+    jisuan.update(read)
+        # if not read:  # 读完继续
+            # break
     file.close()
     output = jisuan.hexdigest()  # 计算哈希值
     print(path, "计算完成", output)
